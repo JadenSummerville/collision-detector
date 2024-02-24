@@ -11,6 +11,23 @@ public class CollisionDetector<T>{
     private final int ROWAREALENGTH;
     private final int COLUMNAREALENGTH;
     private final boolean DEBUG = false;
+    /*
+    public static void main(String[] args){
+        String hello = "hello";
+        String dog = "dog";
+        String cat = "cat";
+        String Y = "Y";
+        CollisionDetector<String> c = new CollisionDetector<>(1001, 1001);
+        c.add(hello, 1000, 1000);
+        c.add(dog, 800, 1000);
+        c.add(cat, 1000, 1001);
+        c.add(Y, 1000, 1000);
+        c.remove(dog);
+        for(String item: c.findCollisions(Y, 1)){
+            System.out.println(item);
+        }
+    }
+    */
     /**
      * Contrusts a new CollisionDetector of width 'width', height 'height',
      * number of internal rows, numOfRows and number of internal colums of 'numOfColumns'.
@@ -50,12 +67,14 @@ public class CollisionDetector<T>{
      * @param y y coordiate of obj
      * @requires x and y are in range
      * @modifies 'this' adds 'obj' at x,y
-     * @throws IllegalArgumentException 'obj' is already present
+     * @throws IllegalArgumentException 'obj' is already present or is null
     */
     public void add(T obj, int x, int y){
         checkRep();
         if(this.LOCATION.containsKey(obj)){
             throw new IllegalArgumentException("Cannot add object that is already present.");
+        }if(obj == null){
+            throw new IllegalArgumentException("No null inputs to add.");
         }
         Coordinate coordinate = new Coordinate(x, y);
         Coordinate areaLocation = findAreaLocation(x, y);
@@ -79,7 +98,59 @@ public class CollisionDetector<T>{
         Coordinate areaLocation = findAreaLocation(location.x, location.y);
         HashSet<T> area = this.AREA[areaLocation.y][areaLocation.x];
         area.remove(obj);
+        this.LOCATION.remove(obj);
         checkRep();
+    }
+    /**
+     * Checks to see if two objects collide with given radius (inclusive).
+     * 
+     * @param obj1 first object that could collide
+     * @param obj2 collide object that could collide
+     * @param radius radius of collison cirlce (inclusive)
+     * @throws IllegalArgumentException iff null input(s) or one 'T' is not present
+     * @return true iff distance between obj1 and obj2 is less than or equal to radius
+    */
+    public boolean checkCollision(T obj1, T obj2, int radius){
+        this.checkRep();
+        if(obj1 == null || obj2 == null){
+            throw new IllegalArgumentException("checkCollision parameters cannot be null.");
+        }
+        if(!(this.contains(obj1) && this.contains(obj2))){
+            throw new IllegalArgumentException("Both elements must be present to check for collision.");
+        }
+        if(obj1 == obj2){
+            this.checkRep();
+            return false;
+        }
+        int[] c1 = this.findLocation(obj1);
+        int[] c2 = this.findLocation(obj2);
+        double distance = this.distance(c1, c2);
+        this.checkRep();
+        return distance <= radius;
+    }
+    /**
+     * Return all elements in 'items' that collide with 'obj' with a radius of 'radius'.
+     * 
+     * @param obj object to check collison with
+     * @param items items to check collison with
+     * @radius required radius for collision (inclusive)
+     * @throws IllegalArgumentException iff null input given
+     * @requires all T are present and not null
+     * @return all items in 'items' that collide with obj in a 'radius' radius (inclusive)
+    */
+    public HashSet<T> checkCollisions(T obj, HashSet<T> items, int radius){
+        this.checkRep();
+        if(items == null || obj == null){
+            throw new IllegalArgumentException("null input.");
+        }
+        HashSet<T> goal = new HashSet<>();
+        for(T item: items){
+            if(this.checkCollision(obj, item, radius)){
+                goal.add(item);
+            }
+        }
+        this.checkRep();
+        return goal;
     }
     /**
      * Moves object 'obj' to x,y
@@ -135,11 +206,9 @@ public class CollisionDetector<T>{
         for(int i = xLowerBound; i != xUpperBound + 1; i++){
             for(int j = yLowerBound; j != yUpperBound + 1; j++){
                 HashSet<T> area = this.AREA[j][i];
-                for(T item: area){
-                    Coordinate other = this.LOCATION.get(item);
-                    if(other.distance(objLocation) <= radius && item != obj){
-                        goal.add(item);
-                    }
+                HashSet<T> collisions = this.checkCollisions(obj, area, radius);
+                for(T collision: collisions){
+                    goal.add(collision);
                 }
             }
         }
@@ -159,7 +228,7 @@ public class CollisionDetector<T>{
             return null;
         }
         int[] goal = new int[2];
-        Coordinate location = this.LOCATION.get(goal);
+        Coordinate location = this.LOCATION.get(obj);
         goal[0] = location.x;
         goal[1] = location.y;
         checkRep();
@@ -252,17 +321,17 @@ public class CollisionDetector<T>{
             throw new RuntimeException(errorMessage);
         }
     }
+    private double distance(int[] first, int[] second){
+        int x = first[0] - second[0];
+        int y = first[1] - second[1];
+        return Math.pow(Math.pow(x, 2) + Math.pow(y, 2), 0.5);
+    }
     private class Coordinate{
         public int x;
         public int y;
         Coordinate(int x, int y){
             this.x = x;
             this.y = y;
-        }
-        public double distance(Coordinate other){
-            int x = this.x - other.x;
-            int y = this.y - other.y;
-            return Math.pow(Math.pow(x, 2) + Math.pow(y, 2), 0.5);
         }
     }
 }
