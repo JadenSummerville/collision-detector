@@ -259,6 +259,14 @@ public class CollisionDetector<T>{
         return this.LOCATION.keySet();
     }
     /**
+     * Returns true iff 'this' is empty.
+     * 
+     * @return true iff 'this' is empty
+    */
+    public boolean isEmpty(){
+        return this.size() == 0;
+    }
+    /**
      * Find which block a coordinate falls under. Coordinates out of
      * bounds are assumed to belong to the closest block.
      * 
